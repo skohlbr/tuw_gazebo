@@ -130,17 +130,17 @@ void GazeboRosImu9Dof::Reset() {
 
 
 void GazeboRosImu9Dof::Update() {
-    //common::Time current_time = model_->GetWorld()->GetSimTime();			//DEPRECATED
-    common::Time current_time = model_->GetWorld()->SimTime();
+    //common::Time current_time = model_->GetWorld()->GetGetSimTime();			//DEPRECATED
+    common::Time current_time = model_->GetWorld()->GetSimTime();
     double dt = ( current_time - last_update_time_ ).Double();
     if ( dt < update_period_ ) { return; }
     
 //     math::Vector3 gravity            = model_->GetWorld()->GetPhysicsEngine()->GetGravity();		//DEPRECATED
-//     math::Pose    model_pose         = model_->GetWorldPose();
-//     math::Vector3 model_velocity_new = model_->GetWorldLinearVel();
+//     math::Pose    model_pose         = model_->GetGetWorldPose();
+//     math::Vector3 model_velocity_new = model_->GetGetWorldLinearVel();
     ignition::math::Vector3<double> gravity = model_->GetWorld()->Gravity();
-    ignition::math::Pose3d model_pose = model_->WorldPose();
-    ignition::math::Vector3<double> model_velocity_new = model_->WorldLinearVel();
+    ignition::math::Pose3d model_pose = model_->GetWorldPose();
+    ignition::math::Vector3<double> model_velocity_new = model_->GetWorldLinearVel();
      // get velocity in world frame
     
 //     math::Quaternion sns_orient_new = offset_.rot * model_pose.Rot(); sns_orient_new.Normalize();		//DEPRECATED

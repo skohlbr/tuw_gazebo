@@ -143,7 +143,7 @@ void GazeboRosDiffDrive::Load ( physics::ModelPtr _parent, sdf::ElementPtr _sdf 
     // Initialize update rate stuff
     if ( this->update_rate_ > 0.0 ) this->update_period_ = 1.0 / this->update_rate_;
     else this->update_period_ = 0.0;
-    last_update_time_ = parent->GetWorld()->SimTime();
+    last_update_time_ = parent->GetWorld()->GetSimTime();
 
     // Initialize velocity stuff
     wheel_speed_[RIGHT] = 0;
@@ -199,7 +199,7 @@ void GazeboRosDiffDrive::Init() {
 
 void GazeboRosDiffDrive::Reset() {
   gazebo::ModelPlugin::Reset();
-  last_update_time_ = parent->GetWorld()->SimTime();
+  last_update_time_ = parent->GetWorld()->GetSimTime();
   pose_encoder_.x = 0;
   pose_encoder_.y = 0;
   pose_encoder_.theta = 0;
@@ -239,7 +239,7 @@ void GazeboRosDiffDrive::publishWheelTF()
         std::string wheel_frame = gazebo_ros_->resolveTF(joints_[i]->GetChild()->GetName ());
         std::string wheel_parent_frame = gazebo_ros_->resolveTF(joints_[i]->GetParent()->GetName ());
         
-        ignition::math::Pose3d poseWheel = joints_[i]->GetChild()->RelativePose();
+        ignition::math::Pose3d poseWheel = joints_[i]->GetChild()->GetRelativePose();
 
         tf::Quaternion qt ( poseWheel.Rot().X(), poseWheel.Rot().Y(), poseWheel.Rot().Z(), poseWheel.Rot().W() );
         tf::Vector3 vt ( poseWheel.Pos().X(), poseWheel.Pos().Y(), poseWheel.Pos().Z());
@@ -273,7 +273,7 @@ void GazeboRosDiffDrive::UpdateChild()
 
 
     if ( odom_source_ == ENCODER ) UpdateOdometryEncoder();
-    common::Time current_time = parent->GetWorld()->SimTime();
+    common::Time current_time = parent->GetWorld()->GetSimTime();
     double seconds_since_last_update = ( current_time - last_update_time_ ).Double();
 
     if ( seconds_since_last_update > update_period_ ) {
@@ -376,7 +376,7 @@ void GazeboRosDiffDrive::UpdateOdometryEncoder()
 {
     double vl = joints_[LEFT]->GetVelocity ( 0 );
     double vr = joints_[RIGHT]->GetVelocity ( 0 );
-    common::Time current_time = parent->GetWorld()->SimTime();
+    common::Time current_time = parent->GetWorld()->GetSimTime();
     double seconds_since_last_update = ( current_time - last_odom_update_ ).Double();
     last_odom_update_ = current_time;
 
@@ -446,7 +446,7 @@ void GazeboRosDiffDrive::publishOdometry ( double step_time )
     }
     if ( odom_source_ == WORLD ) {
         // getting data form gazebo world
-        ignition::math::Pose3d pose = parent->WorldPose();
+        ignition::math::Pose3d pose = parent->GetWorldPose();
 
         odom_.pose.pose.position.x = pose.Pos().X();
         odom_.pose.pose.position.y = pose.Pos().Y();
@@ -458,7 +458,7 @@ void GazeboRosDiffDrive::publishOdometry ( double step_time )
         odom_.pose.pose.orientation.w = pose.Rot().W();
 
         // get velocity in /odom frame
-        ignition::math::Vector3d linear = parent->WorldLinearVel();
+        ignition::math::Vector3d linear = parent->GetWorldLinearVel();
         odom_.twist.twist.angular.z = parent->WorldAngularVel().Z();
 
         // convert velocity to child_frame_id (aka base_footprint)

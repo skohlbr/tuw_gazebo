@@ -65,7 +65,7 @@ double GazeboRosEncoder::getJointRpm(const physics::JointPtr &joint) {
 }
 
 void GazeboRosEncoder::Update() {
-  common::Time current_time = parent_->GetWorld()->SimTime();
+  common::Time current_time = parent_->GetWorld()->GetSimTime();
   double dt = (current_time - last_update_time_).Double();
   if (dt < update_period_) {
     return;

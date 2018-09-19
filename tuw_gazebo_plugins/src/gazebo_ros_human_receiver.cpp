@@ -226,7 +226,7 @@ void GazeboRosHumanReceiver::updateHumansFnc()
           lasthumansActive.erase(it);
         }
         humansActive_[msgHumans_.objects[i].object.ids[0]] = p;
-        const ignition::math::Pose3d &current = p->WorldPose();
+        const ignition::math::Pose3d &current = p->GetWorldPose();
         ignition::math::Vector3d diff = poseModel.Rot().Euler() - current.Rot().Euler();
         p->SetLinearVel(ignition::math::Vector3d(vx, vy, vz));
         p->SetAngularVel(ignition::math::Vector3d(diff.X(), diff.Y(), diff.Z()));

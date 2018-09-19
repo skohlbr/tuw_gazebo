@@ -111,7 +111,7 @@ void ConeDetectionSim::setVisualDetectionCovariance(
 }
 
 void ConeDetectionSim::Update() {
-  common::Time current_time = parent_->GetWorld()->SimTime();
+  common::Time current_time = parent_->GetWorld()->GetSimTime();
   double dt = (current_time - last_update_time_).Double();
 
   update_period_ = 1.0 / config_.fps;
@@ -125,13 +125,13 @@ void ConeDetectionSim::Update() {
 
   tuw_object_msgs::ObjectDetection od;
 
-  ignition::math::Pose3d robotPose = parent_->WorldPose();
+  ignition::math::Pose3d robotPose = parent_->GetWorldPose();
   double robotX = robotPose.Pos().X(), robotY = robotPose.Pos().Y();
 
   for (physics::ModelPtr cone : cones_) {
     double r = ((double)std::rand()) / RAND_MAX;
     if (r <= config_.p_detection) {
-      auto conePosition = cone->WorldPose().Pos();
+      auto conePosition = cone->GetWorldPose().Pos();
 
       double x = conePosition.X() - robotX;
       double y = conePosition.Y() - robotY;

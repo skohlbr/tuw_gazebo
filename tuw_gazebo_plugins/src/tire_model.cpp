@@ -175,7 +175,7 @@ void TireModel::Load(physics::ModelPtr parent, sdf::ElementPtr sdf) {
 
   tireLink_ = parent_->GetLink(tireLinkName_);
   carLink_ = parent_->GetLink(baseLinkName_);
-  anchorPose_ = tireJoint_->GetChild()->InitialRelativePose().Pos();
+  anchorPose_ = tireJoint_->GetChild()->InitialGetRelativePose().Pos();
   if (this->update_rate_ > 0.0) {
     this->update_period_ = 1.0 / this->update_rate_;
   } else {
@@ -205,7 +205,7 @@ void TireModel::Init() { gazebo::ModelPlugin::Init(); }
 
 void TireModel::Reset() {
   gazebo::ModelPlugin::Reset();
-  last_update_time_ = parent_->GetWorld()->SimTime();
+  last_update_time_ = parent_->GetWorld()->GetSimTime();
   this->contactSub_.reset();
 }
 
@@ -218,7 +218,7 @@ double TireModel::GetCamberFromToeAngle(double angle) {
 }
 
 void TireModel::UpdateChild() {
-  common::Time current_time = parent_->GetWorld()->SimTime();
+  common::Time current_time = parent_->GetWorld()->GetSimTime();
   double elapsedTime = (current_time - last_update_time_).Double();
   last_update_time_ = current_time;
   double Fz = 0 - tireJoint_->GetForceTorque(0).body1Force.Z();
@@ -239,7 +239,7 @@ void TireModel::UpdateChild() {
     ignition::math::Vector3d angularVelCrossAnchorPose =
         angularVehicleVelocity.Cross(anchorPose_);
     ignition::math::Quaternion<double> tireRotation =
-        tireJoint_->GetChild()->RelativePose().Rot();
+        tireJoint_->GetChild()->GetRelativePose().Rot();
     double toeAngle = -tireRotation.Euler().Z();
     if (fabs(toeAngle) < 0.0001) { toeAngle = 0; } //gazebo reports -0.000001
     if (toeAngle > ( M_PI / 2.0)) { toeAngle = toeAngle - M_PI; }

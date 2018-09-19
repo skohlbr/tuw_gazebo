@@ -128,7 +128,7 @@ void GazeboRosRWD::Load(physics::ModelPtr parent, sdf::ElementPtr sdf) {
   } else {
     this->update_period_ = 0.0;
   }
-  last_update_time_ = parent_->GetWorld()->SimTime();
+  last_update_time_ = parent_->GetWorld()->GetSimTime();
 
   alive_ = true;
 
@@ -161,19 +161,19 @@ void GazeboRosRWD::Init() { gazebo::ModelPlugin::Init(); }
 
 void GazeboRosRWD::Reset() {
   gazebo::ModelPlugin::Reset();
-  last_update_time_ = parent_->GetWorld()->SimTime();
+  last_update_time_ = parent_->GetWorld()->GetSimTime();
 }
 
 void GazeboRosRWD::UpdateChild() {
-  common::Time current_time = parent_->GetWorld()->SimTime();
+  common::Time current_time = parent_->GetWorld()->GetSimTime();
   common::Time seconds_since_last_update = (current_time - last_update_time_);
   double elapsedSeconds = seconds_since_last_update.Double();
   hvBattery.Update(elapsedSeconds);
   maxVelocity_ = GetMaxVelocity();
-  double effortRight = rightSteerPID_.Update(rightSteeringJoint_->Position() -
+  double effortRight = rightSteerPID_.Update(rightSteeringJoint_->GetGetPosition() -
                                                  GetRightToeAngle(steering_),
                                              seconds_since_last_update);
-  double effortLeft = leftSteerPID_.Update(leftSteeringJoint_->Position() -
+  double effortLeft = leftSteerPID_.Update(leftSteeringJoint_->GetGetPosition() -
                                                GetLeftToeAngle(steering_),
                                            seconds_since_last_update);
   leftSteeringJoint_->SetForce(0, effortLeft);
@@ -204,7 +204,7 @@ double GazeboRosRWD::GetMaxVelocity() {
 
 void GazeboRosRWD::WheelForces(double elapsedSeconds) {
   double secSinceUpdate =
-      (parent_->GetWorld()->SimTime() - lastRWDTime_).Double();
+      (parent_->GetWorld()->GetSimTime() - lastRWDTime_).Double();
   const double stopTorque = 30;
   if (secSinceUpdate > 1) {
     // if no rwd received, just stop
@@ -260,7 +260,7 @@ void GazeboRosRWD::cmdRWDCallback(
   torqueRight_ = rwd->right_torque;
   steering_ = rwd->steering_angle;
   brakePressure_ = fmax(0, rwd->brake_pressure);
-  lastRWDTime_ = parent_->GetWorld()->SimTime();
+  lastRWDTime_ = parent_->GetWorld()->GetSimTime();
 }
 
 void GazeboRosRWD::QueueThread() {

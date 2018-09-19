@@ -17,7 +17,7 @@ double getConeColorShapeVariable(physics::ModelPtr cone) {
 
 bool isInRangeOf(const ignition::math::Vector3d &conePos,
                  physics::ModelPtr model, const DetectionConfig &cdConfig) {
-  ignition::math::Pose3d pose = model->WorldPose();
+  ignition::math::Pose3d pose = model->GetWorldPose();
   ignition::math::Vector3d pos = pose.Pos();
 
   // TODO sensor mounting position by configuration, not hard-coded
@@ -73,7 +73,7 @@ std::vector<physics::ModelPtr> getConesInWorldSeenBy(
   auto cones = getConesInWorld(world);
   std::vector<physics::ModelPtr> filtered;
   for (int i(0); i < cones.size(); i++) {
-    if (isInRangeOf(cones[i]->WorldPose().Pos(), robot, cdConfig)) {
+    if (isInRangeOf(cones[i]->GetWorldPose().Pos(), robot, cdConfig)) {
       filtered.push_back(cones[i]);
     }
   }

@@ -133,9 +133,9 @@ target_link_libraries(tuw_gazebo_ros_imu9dof tuw_gazebo_ros_utils ${GAZEBO_LIBRA
 add_library(tuw_gazebo_ros_bridge_model src/gazebo_ros_bridge_model.cpp)
 target_link_libraries(tuw_gazebo_ros_bridge_model tuw_gazebo_ros_utils ${GAZEBO_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
-add_library(tuw_gazebo_ros_human_receiver src/gazebo_ros_human_receiver.cpp)
-add_dependencies(tuw_gazebo_ros_human_receiver ${PROJECT_NAME}_gencfg ${catkin_EXPORTED_TARGETS})
-target_link_libraries(tuw_gazebo_ros_human_receiver ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+#add_library(tuw_gazebo_ros_human_receiver src/gazebo_ros_human_receiver.cpp)
+#add_dependencies(tuw_gazebo_ros_human_receiver ${PROJECT_NAME}_gencfg ${catkin_EXPORTED_TARGETS})
+#target_link_libraries(tuw_gazebo_ros_human_receiver ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_library(tuw_gazebo_tire_model src/tire_model.cpp)
 target_link_libraries(tuw_gazebo_tire_model tuw_gazebo_ros_utils ${GAZEBO_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES})

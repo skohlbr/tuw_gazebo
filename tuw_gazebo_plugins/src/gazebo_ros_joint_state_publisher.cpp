@@ -78,8 +78,8 @@ void GazeboRosJointStatePublisher::Load ( physics::ModelPtr _parent, sdf::Elemen
     } else {
         this->update_period_ = 0.0;
     }
-    //last_update_time_ = this->world_->GetSimTime();			//DEPRECATED
-    last_update_time_ = this->world_->SimTime();
+    //last_update_time_ = this->world_->GetGetSimTime();			//DEPRECATED
+    last_update_time_ = this->world_->GetSimTime();
 
     for ( unsigned int i = 0; i< joint_names_.size(); i++ ) {
         joints_.push_back ( this->parent_->GetJoint ( joint_names_[i] ) );
@@ -91,8 +91,8 @@ void GazeboRosJointStatePublisher::Load ( physics::ModelPtr _parent, sdf::Elemen
     tf_prefix_ = tf::getPrefixParam ( *rosnode_ );
     joint_state_publisher_ = rosnode_->advertise<sensor_msgs::JointState> ( "joint_states", 3 );
 
-    //last_update_time_ = this->world_->GetSimTime();			//DEPRECATED
-    last_update_time_ = this->world_->SimTime();
+    //last_update_time_ = this->world_->GetGetSimTime();			//DEPRECATED
+    last_update_time_ = this->world_->GetSimTime();
     // Listen to the update event. This event is broadcast every
     // simulation iteration.
     this->updateConnection = event::Events::ConnectWorldUpdateBegin (
@@ -101,8 +101,8 @@ void GazeboRosJointStatePublisher::Load ( physics::ModelPtr _parent, sdf::Elemen
 
 void GazeboRosJointStatePublisher::OnUpdate ( const common::UpdateInfo & _info ) {
     // Apply a small linear velocity to the model.
-    //common::Time current_time = this->world_->GetSimTime();			//DEPRECATED
-    common::Time current_time = this->world_->SimTime();
+    //common::Time current_time = this->world_->GetGetSimTime();			//DEPRECATED
+    common::Time current_time = this->world_->GetSimTime();
     double seconds_since_last_update = ( current_time - last_update_time_ ).Double();
     if ( seconds_since_last_update > update_period_ ) {
 
@@ -125,7 +125,7 @@ void GazeboRosJointStatePublisher::publishJointStates() {
         physics::JointPtr joint = joints_[i];
         //math::Angle angle = joint->GetAngle ( 0 );			//DEPRECATED
         joint_state_.name[i] = joint->GetName();
-        joint_state_.position[i] = joint->Position( 0 );
+        joint_state_.position[i] = joint->GetAngle( 0 ).Radian();
     }
     joint_state_publisher_.publish ( joint_state_ );
 }

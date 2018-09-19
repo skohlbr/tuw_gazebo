@@ -65,7 +65,7 @@ double getColorShapeVariable() {
 }
 
 void GazeboRosMap::Update() {
-  common::Time current_time = parent_->GetWorld()->SimTime();
+  common::Time current_time = parent_->GetWorld()->GetSimTime();
   double dt = (current_time - last_update_time_).Double();
   if (dt < update_period_) {
     return;
@@ -75,11 +75,11 @@ void GazeboRosMap::Update() {
 
   tuw_object_msgs::ObjectWithCovarianceArray od;
 
-  auto robotPose = parent_->WorldPose();
+  auto robotPose = parent_->GetWorldPose();
   double robotX = robotPose.Pos().X(), robotY = robotPose.Pos().Y();
 
   for (auto &cone : cones_) {
-    ignition::math::Vector3d cpos = cone->WorldPose().Pos();
+    ignition::math::Vector3d cpos = cone->GetWorldPose().Pos();
 
     tuw_object_msgs::ObjectWithCovariance owc;
     tuw_object_msgs::Object object;

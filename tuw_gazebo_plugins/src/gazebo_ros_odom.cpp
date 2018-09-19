@@ -26,7 +26,7 @@ void GazeboRosOdom::Load(physics::ModelPtr parent, sdf::ElementPtr sdf) {
 
   updatePeriod_ = 1. / (double)updateRate;
 
-  lastUpdateTime_ = parent_->GetWorld()->SimTime();
+  lastUpdateTime_ = parent_->GetWorld()->GetSimTime();
 
   pubOdom_ = gazebo_ros_->node()->advertise<nav_msgs::Odometry>(odomTopic_, 1);
   ROS_INFO("%s: Advertising odom on %s", gazebo_ros_->info(),
@@ -40,11 +40,11 @@ void GazeboRosOdom::Init() { gazebo::ModelPlugin::Init(); }
 
 void GazeboRosOdom::Reset() {
   gazebo::ModelPlugin::Reset();
-  lastUpdateTime_ = parent_->GetWorld()->SimTime();
+  lastUpdateTime_ = parent_->GetWorld()->GetSimTime();
 }
 
 void GazeboRosOdom::UpdateChild() {
-  common::Time current_time = parent_->GetWorld()->SimTime();
+  common::Time current_time = parent_->GetWorld()->GetSimTime();
 
   if ((current_time - lastUpdateTime_).Double() > updatePeriod_) {
     publishOdometry();
@@ -57,7 +57,7 @@ void GazeboRosOdom::publishOdometry() {
   ros::Time current_time = ros::Time::now();
   std::string mapFrame = "map";
 
-  ignition::math::Pose3d pose = parent_->WorldPose();
+  ignition::math::Pose3d pose = parent_->GetWorldPose();
 
   double px = pose.Pos().X(), py = pose.Pos().Y(), pz = pose.Pos().Z();
   double qx = pose.Rot().X(), qy = pose.Rot().Y(), qz = pose.Rot().Z(), qw = pose.Rot().W();
@@ -84,7 +84,7 @@ void GazeboRosOdom::publishOdometry() {
 
   // get velocity in /odom frame
   ignition::math::Vector3d linear;
-  linear = parent_->WorldLinearVel();
+  linear = parent_->GetWorldLinearVel();
   odom_.twist.twist.angular.z = parent_->WorldAngularVel().Z();
 
   // convert velocity to child_frame_id (aka base_footprint)
