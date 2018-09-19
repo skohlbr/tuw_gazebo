@@ -35,8 +35,8 @@ GazeboRosRWD::GazeboRosRWD() {
 }
 
 GazeboRosRWD::~GazeboRosRWD() {
-  //event::Events::DisconnectWorldUpdateBegin(this->update_connection_);		//DEPRECATED
-  this->update_connection_->~Connection();
+  event::Events::DisconnectWorldUpdateBegin(this->update_connection_);
+
   cmd_rwd_subscriber_.shutdown();
 
   queue_.clear();

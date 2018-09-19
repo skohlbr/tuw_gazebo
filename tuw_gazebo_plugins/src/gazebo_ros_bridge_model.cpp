@@ -35,6 +35,8 @@
 
 #include <tuw_gazebo_plugins/gazebo_ros_bridge_model.h>
 
+#include <gazebo/math/gzmath.hh>
+
 #include <sdf/sdf.hh>
 #include <boost/graph/graph_concepts.hpp>
 
@@ -49,9 +51,9 @@ GazeboRosBridgeModelPlugin::GazeboRosBridgeModelPlugin() :firstChildUpdate_ ( fa
 
 // Destructor
 GazeboRosBridgeModelPlugin::~GazeboRosBridgeModelPlugin() {
-
-    //event::Events::DisconnectWorldUpdateBegin ( updateConnection_ );      //DEPRECATED
-
+    
+    event::Events::DisconnectWorldUpdateBegin ( updateConnection_ );
+    
     pubJointMeasures_.shutdown();
     pubJointsStates_.shutdown();
     pubOdometry_    .shutdown();
@@ -83,12 +85,10 @@ void GazeboRosBridgeModelPlugin::Load ( physics::ModelPtr _parent, sdf::ElementP
     initAllStates ( body_state_initial_ );
 
     // Initialize update rate stuff
-    if ( update_rate_ > 0.0 ) {
-        update_period_ = 1.0 / update_rate_;
-    } else                      {
-        update_period_ = 0.0;
-    }
-    last_update_time_ = parent_->GetWorld()->SimTime();
+
+    if ( update_rate_ > 0.0 ) { update_period_ = 1.0 / update_rate_; }
+    else                      { update_period_ = 0.0;                }
+    last_update_time_ = parent_->GetWorld()->GetSimTime();
 
     //Publishers
     pubJointMeasures_ = gazeboRos_->node()->advertise<tuw_nav_msgs::JointsIWS> ( joints_measures_topic_.c_str(), 1 );
@@ -137,56 +137,44 @@ void GazeboRosBridgeModelPlugin::loadParameters ( physics::ModelPtr _parent, sdf
     gazeboRos_ = GazeboRosPtr ( new GazeboRos ( _parent, _sdf, "TUWBridgeModel", false ) );
     // Make sure the ROS node for Gazebo has already been initialized
     gazeboRos_->isInitialized();
-
-    gazeboRos_->getParameter ( joint_states_topic_,       "joints_states_topic", std::string ( "joint_states" ) );
-    gazeboRos_->getParameter ( joints_measures_topic_,     "joints_measures_topic", std::string ( "joints_measures" ) );
-    gazeboRos_->getParameter ( joints_cmd_topic_,          "joints_cmd_topic", std::string ( "joints_cmds" ) );
-    gazeboRos_->getParameter ( odometry_topic_,                "odom_topic", std::string ( "odom_ground_truth" ) );
-    gazeboRos_->getParameter ( odometry_frame_,                "odom_frame", std::string ( "odom_ground_truth" ) );
-    gazeboRos_->getParameter ( robot_base_frame_,          "model_base_frame", std::string ( "base_footprint" ) );
-    gazeboRos_->getParameterBoolean ( publishTfs_,               "publish_tfs",                            false );
-    gazeboRos_->getParameterBoolean ( publishJointStates_,     "publish_joints_states",                            false );
-    gazeboRos_->getParameterBoolean ( publishOdometry_, "publish_odom_ground_truth",                             true );
-
-    gazeboRos_->getParameter<double> ( constr_hi_stop_steering_ ,       "steering_hi_stop"   ,                            M_PI );
-    gazeboRos_->getParameter<double> ( constr_lo_stop_steering_ ,       "steering_lo_stop"   ,                          - M_PI );
-    gazeboRos_->getParameter<double> ( constr_max_torque_[STEER],       "steering_max_torque",                            10.0 );
-    gazeboRos_->getParameter<double> ( constr_max_vel_   [STEER],       "steering_max_vel"   ,                            10.0 );
-    gazeboRos_->getParameter<double> ( constr_damping_   [STEER],       "steering_damping"   ,                             1.0 );
-    gazeboRos_->getParameter<double> ( constr_friction_  [STEER],       "steering_friction"  ,                             0.0 );
-
-    gazeboRos_->getParameter<double> ( constr_max_torque_[REVOL],       "revolute_max_torque",                            10.0 );
-    gazeboRos_->getParameter<double> ( constr_max_vel_   [REVOL],       "revolute_max_vel"   ,                            10.0 );
-    gazeboRos_->getParameter<double> ( constr_damping_   [REVOL],       "revolute_damping"   ,                             1.0 );
-    gazeboRos_->getParameter<double> ( constr_friction_  [REVOL],       "revolute_friction"  ,                             0.0 );
-
-    gazeboRos_->getParameter<double> ( update_rate_,                    "updateRate"         ,                            100.0 );
-    gazeboRos_->getParameter<double> ( timeout_cmd_,                    "timeout_cmd"        ,                             10.0 );
-
-
-    gazeboRos_->getParameter ( jointsMeasureType_[STEER],    "steering_measures_type", std::string ( "measured_position" ) );
-    gazeboRos_->getParameter ( jointsMeasureType_[REVOL],    "revolute_measures_type", std::string ( "measured_velocity" ) );
-
-
-    for ( size_t i = 0; i < jointsMeasureType_.size(); ++i ) {
-        if ( !jointsMeasureType_[i].compare ( "measured_position" ) ) {
-            getJointMeasure[i] = [] ( physics::JointPtr& _joint ) {
-                return _joint->Position ( 0 );
-            };
-        } else if ( !jointsMeasureType_[i].compare ( "measured_velocity" ) ) {
-            getJointMeasure[i] = [] ( physics::JointPtr& _joint ) {
-                return _joint->GetVelocity ( 0 );
-            };
-        } else if ( !jointsMeasureType_[i].compare ( "measured_torque  " ) ) {
-            getJointMeasure[i] = [] ( physics::JointPtr& _joint ) {
-                return _joint->GetForce ( 0 );
-            };
-        } else {
-            getJointMeasure[i] = [] ( physics::JointPtr& _joint ) {
-                return nan ( "" );
-            };
-            ROS_ERROR ( "%s: Joint measurement mode: \"%s\" is not supported", gazeboRos_->info(), jointsMeasureType_[i].c_str() );
-        }
+    
+    gazeboRos_->getParameter         (       joint_states_topic_,       "joints_states_topic", std::string(     "joint_states") );
+    gazeboRos_->getParameter         (    joints_measures_topic_,     "joints_measures_topic", std::string(  "joints_measures") );
+    gazeboRos_->getParameter         (         joints_cmd_topic_,          "joints_cmd_topic", std::string(      "joints_cmds") );
+    gazeboRos_->getParameter         (           odometry_topic_,                "odom_topic", std::string("odom_ground_truth") );
+    gazeboRos_->getParameter         (           odometry_frame_,                "odom_frame", std::string("odom_ground_truth") );
+    gazeboRos_->getParameter         (         robot_base_frame_,          "model_base_frame", std::string(   "base_footprint") );
+    gazeboRos_->getParameterBoolean  (               publishTfs_,               "publish_tfs",                            false );
+    gazeboRos_->getParameterBoolean  (       publishJointStates_,     "publish_joints_states",                            false );
+    gazeboRos_->getParameterBoolean  (          publishOdometry_, "publish_odom_ground_truth",                             true );
+    
+    gazeboRos_->getParameter<double> ( constr_hi_stop_steering_ ,       "steering_hi_stop"   ,                            M_PI  );
+    gazeboRos_->getParameter<double> ( constr_lo_stop_steering_ ,       "steering_lo_stop"   ,                          - M_PI  );
+    gazeboRos_->getParameter<double> ( constr_max_torque_[STEER],       "steering_max_torque",                            10.0  );
+    gazeboRos_->getParameter<double> ( constr_max_vel_   [STEER],       "steering_max_vel"   ,                            10.0  );
+    gazeboRos_->getParameter<double> ( constr_damping_   [STEER],       "steering_damping"   ,                             1.0  );
+    gazeboRos_->getParameter<double> ( constr_friction_  [STEER],       "steering_friction"  ,                             0.0  );
+    
+    gazeboRos_->getParameter<double> ( constr_max_torque_[REVOL],       "revolute_max_torque",                            10.0  );
+    gazeboRos_->getParameter<double> ( constr_max_vel_   [REVOL],       "revolute_max_vel"   ,                            10.0  );
+    gazeboRos_->getParameter<double> ( constr_damping_   [REVOL],       "revolute_damping"   ,                             1.0  );
+    gazeboRos_->getParameter<double> ( constr_friction_  [REVOL],       "revolute_friction"  ,                             0.0  );
+    
+    gazeboRos_->getParameter<double> (              update_rate_,                "updateRate",                            100.0 );
+    
+    
+    gazeboRos_->getParameter         ( jointsMeasureType_[STEER],    "steering_measures_type", std::string("measured_position") );
+    gazeboRos_->getParameter         ( jointsMeasureType_[REVOL],    "revolute_measures_type", std::string("measured_velocity") );
+    
+    
+    for(size_t i = 0; i < jointsMeasureType_.size(); ++i ) {
+	if      ( !jointsMeasureType_[i].compare("measured_position") ) { getJointMeasure[i] = []( physics::JointPtr& _joint ){ return _joint->GetAngle   ( 0 ).Radian(); }; }
+	else if ( !jointsMeasureType_[i].compare("measured_velocity") ) { getJointMeasure[i] = []( physics::JointPtr& _joint ){ return _joint->GetVelocity( 0 );          }; }
+	else if ( !jointsMeasureType_[i].compare("measured_torque  ") ) { getJointMeasure[i] = []( physics::JointPtr& _joint ){ return _joint->GetForce   ( 0 );          }; }
+	else {
+	    getJointMeasure[i] = []( physics::JointPtr& _joint ){ return nan(""); }; 
+	    ROS_ERROR("%s: Joint measurement mode: \"%s\" is not supported", gazeboRos_->info(), jointsMeasureType_[i].c_str()  );
+	}
     }
     for ( auto& setJointCmdTypeI : setJointCmd ) {
         setJointCmdTypeI = [] ( physics::JointPtr& _joint, double _cmd ) {};
@@ -269,9 +257,9 @@ void GazeboRosBridgeModelPlugin::loadJoints() {
 
 void GazeboRosBridgeModelPlugin::setJointsConstraints() {
     for ( auto& steerJointI : joints_[STEER] ) {
-        ignition::math::Angle angle;
-        steerJointI->SetUpperLimit ( 0, constr_hi_stop_steering_ );
-        steerJointI->SetLowerLimit ( 0, constr_lo_stop_steering_ );
+	math::Angle angle;
+	angle.SetFromRadian(constr_hi_stop_steering_); steerJointI->SetHighStop(0, angle );
+	angle.SetFromRadian(constr_lo_stop_steering_); steerJointI->SetLowStop (0, angle );
     }
     for ( size_t i = 0; i < joints_.size(); ++i ) {
         for ( auto& JointI : joints_[i] ) {
@@ -305,12 +293,9 @@ void GazeboRosBridgeModelPlugin::initAllStates ( const nav_msgs::Odometry& body_
 
 // read/write into sim
 void GazeboRosBridgeModelPlugin::UpdateChild() {
-    if ( !firstChildUpdate_ ) {
-        setJointsConstraints();
-        firstChildUpdate_ = true;
-    }
-
-    common::Time current_time = parent_->GetWorld()->SimTime();
+    if(!firstChildUpdate_){ setJointsConstraints(); firstChildUpdate_ = true; }
+    
+    common::Time current_time = parent_->GetWorld()->GetSimTime();
     double seconds_since_last_update = ( current_time - last_update_time_ ).Double();
 
     if ( seconds_since_last_update > update_period_ ) {
@@ -388,13 +373,12 @@ void GazeboRosBridgeModelPlugin::publishJointsStates() {
     joint_state_.velocity.resize ( allJointsSize );
     size_t i = 0;
     for ( auto& jointsTypeI : joints_ ) {
-        for ( auto& jointI : jointsTypeI ) {
-            joint_state_.name    [i] = jointI->GetName ( );
-            //joint_state_.position[i] = jointI->GetAngle   ( 0 ).Radian() ;    //DEPRECATED
-            joint_state_.position[i] = jointI->Position ( 0 ) ;
-            joint_state_.velocity[i] = jointI->GetVelocity ( 0 ) ;
-            i++;
-        }
+	for ( auto& jointI : jointsTypeI ) {
+	    joint_state_.name    [i] = jointI->GetName    (   );
+	    joint_state_.position[i] = jointI->GetAngle   ( 0 ).Radian() ;
+	    joint_state_.velocity[i] = jointI->GetVelocity( 0 ) ;
+	    i++;
+	}
     }
     pubJointsStates_.publish ( joint_state_ );
 }
@@ -424,25 +408,20 @@ void GazeboRosBridgeModelPlugin::publishTFs() {
     ros::Time current_time = ros::Time::now();
     size_t i = 0;
     for ( auto& jointsTypeI : joints_ ) {
-        for ( auto& jointI : jointsTypeI ) {
-            string child_frame  = gazeboRos_->resolveTF ( jointI-> GetChild()->GetName () );
-            string parent_frame = gazeboRos_->resolveTF ( jointI->GetParent()->GetName () );
+	for ( auto& jointI : jointsTypeI ) {
+	    string child_frame  = gazeboRos_->resolveTF(jointI-> GetChild()->GetName ());
+	    string parent_frame = gazeboRos_->resolveTF(jointI->GetParent()->GetName ());
+        
+	    math::Pose pose_child   = jointI->GetChild() ->GetRelativePose();//this returns relative pose to parent model! i.e. base link
+	    math::Pose pose_parrent = jointI->GetParent()->GetRelativePose();
+	    math::Pose pose_rel_to_parrent = pose_child - pose_parrent;
 
-            //math::Pose pose_child   = jointI->GetChild() ->GetRelativePose();//this returns relative pose to parent model! i.e. base link  //DEPRECATED
-            ignition::math::Pose3d pose_child = jointI->GetChild()->RelativePose();//this returns relative pose to parent model! i.e. base link
-            //math::Pose pose_parrent = jointI->GetParent()->GetRelativePose();                  //DEPRECATED
-            ignition::math::Pose3d pose_parrent = jointI->GetParent()->RelativePose();
-            //math::Pose pose_rel_to_parrent = pose_child - pose_parrent;                  //DEPRECATED
-            ignition::math::Pose3d pose_rel_to_parrent = pose_child - pose_parrent;
+	    tf::Quaternion qt ( pose_rel_to_parrent.rot.x, pose_rel_to_parrent.rot.y, pose_rel_to_parrent.rot.z, pose_rel_to_parrent.rot.w );
+	    tf::Vector3    vt ( pose_rel_to_parrent.pos.x, pose_rel_to_parrent.pos.y, pose_rel_to_parrent.pos.z );
 
-            //tf::Quaternion qt ( pose_rel_to_parrent.rot.x, pose_rel_to_parrent.rot.y, pose_rel_to_parrent.rot.z, pose_rel_to_parrent.rot.w );  //DEPRECATED
-            tf::Quaternion qt ( pose_rel_to_parrent.Rot().X(),pose_rel_to_parrent.Rot().Y(),pose_rel_to_parrent.Rot().Z(),pose_rel_to_parrent.Rot().W() );
-            //tf::Vector3    vt ( pose_rel_to_parrent.pos.x, pose_rel_to_parrent.pos.y, pose_rel_to_parrent.pos.z );        //DEPRECATED
-            tf::Vector3    vt ( pose_rel_to_parrent.Pos().X(), pose_rel_to_parrent.Pos().Y(), pose_rel_to_parrent.Pos().Z() );
-
-            tf::Transform tfChild ( qt, vt );
-            transform_broadcaster_->sendTransform ( tf::StampedTransform ( tfChild, current_time, parent_frame, child_frame ) );
-        }
+	    tf::Transform tfChild ( qt, vt );
+	    transform_broadcaster_->sendTransform ( tf::StampedTransform ( tfChild, current_time, parent_frame, child_frame ) ); 
+	}
     }
 }
 
@@ -454,31 +433,28 @@ void GazeboRosBridgeModelPlugin::publishWorldOdometry ( double step_time ) {
 
     tf::Quaternion qt;
     tf::Vector3 vt;
-
-    //math::Pose pose = parent_->GetWorldPose();          //DEPRECATED
-    ignition::math::Pose3d pose = parent_->WorldPose();
+    
+    math::Pose pose = parent_->GetWorldPose();
 
     //getting data form encoder integration
-    //qt = tf::Quaternion ( pose.rot.x, pose.rot.y, pose.rot.z, pose.rot.w );
-    qt = tf::Quaternion ( pose.Rot().X(), pose.Rot().Y(), pose.Rot().Z(), pose.Rot().W() );    //DEPRECATED
-    //vt = tf::Vector3    ( pose.pos.x, pose.pos.y, pose.pos.z );
-    vt = tf::Vector3 ( pose.Pos().X(), pose.Pos().Y(), pose.Pos().Z() );           //DEPRECATED
-
+    qt = tf::Quaternion ( pose.rot.x, pose.rot.y, pose.rot.z, pose.rot.w );
+    vt = tf::Vector3    ( pose.pos.x, pose.pos.y, pose.pos.z );
+    
 //     if (this->publishTfs_) {
     tf::Transform base_footprint_to_odom ( qt, vt );
     transform_broadcaster_->sendTransform ( tf::StampedTransform ( base_footprint_to_odom, current_time, odom_frame, base_footprint_frame ) );
 //     }
 
     nav_msgs::Odometry odom_;
+    
+    // set pose position
+    odom_.pose.pose.position.x = pose.pos.x;
+    odom_.pose.pose.position.y = pose.pos.y;
 
-    // set pose position            //DEPRECATED
-    odom_.pose.pose.position.x = pose.Pos().X();
-    odom_.pose.pose.position.y = pose.Pos().Y();
-
-    odom_.pose.pose.orientation.x = pose.Rot().X();
-    odom_.pose.pose.orientation.y = pose.Rot().Y();
-    odom_.pose.pose.orientation.z = pose.Rot().Z();
-    odom_.pose.pose.orientation.w = pose.Rot().W();
+    odom_.pose.pose.orientation.x = pose.rot.x;
+    odom_.pose.pose.orientation.y = pose.rot.y;
+    odom_.pose.pose.orientation.z = pose.rot.z;
+    odom_.pose.pose.orientation.w = pose.rot.w;
     odom_.pose.covariance[0 ] = 0.00001;
     odom_.pose.covariance[7 ] = 0.00001;
     odom_.pose.covariance[14] = 1000000000000.0;
@@ -487,16 +463,14 @@ void GazeboRosBridgeModelPlugin::publishWorldOdometry ( double step_time ) {
     odom_.pose.covariance[35] = 0.01;
 
     // set pose velocity
-    //math::Vector3 linear;        //DEPRECATED
-    ignition::math::Vector3<double> linear;
-    linear = parent_->WorldLinearVel();
-    odom_.twist.twist.angular.z = parent_->WorldAngularVel().Z();
+    math::Vector3 linear;
+    linear = parent_->GetWorldLinearVel();
+    odom_.twist.twist.angular.z = parent_->GetWorldAngularVel().z;
 
     // convert velocity to child_frame_id (aka base_footprint)
-    //float yaw = pose.rot.GetYaw();            //DEPRECATED
-    float yaw = pose.Rot().Yaw();
-    odom_.twist.twist.linear.x = cos ( yaw ) * linear.X() + sin ( yaw ) * linear.Y();
-    odom_.twist.twist.linear.y = cos ( yaw ) * linear.Y() - sin ( yaw ) * linear.X();
+    float yaw = pose.rot.GetYaw();
+    odom_.twist.twist.linear.x = cos(yaw) * linear.x + sin(yaw) * linear.y;
+    odom_.twist.twist.linear.y = cos(yaw) * linear.y - sin(yaw) * linear.x;
 
     // set header
     odom_.header.stamp    = current_time;
@@ -513,8 +487,8 @@ void GazeboRosBridgeModelPlugin::Init() {
 
 void GazeboRosBridgeModelPlugin::Reset() {
     gazebo::ModelPlugin::Reset();
-    last_update_time_ = parent_->GetWorld()->SimTime();
-    initAllStates ( body_state_initial_ );
+    last_update_time_ = parent_->GetWorld()->GetSimTime();
+    initAllStates( body_state_initial_ ); 
 }
 
 void GazeboRosBridgeModelPlugin::QueueThread() {

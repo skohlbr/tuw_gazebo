@@ -1,3 +1,4 @@
+
 #include <ros/ros.h>
 #include <tuw_gazebo_plugins/gazebo_ros_utils.h>
 #include <tuw_gazebo_plugins/tire_model.h>
@@ -10,6 +11,7 @@ namespace gazebo {
 TireModel::TireModel() {}
 
 TireModel::~TireModel() {
+  event::Events::DisconnectWorldUpdateBegin(this->update_connection_);
   alive_ = false;
 }
 
